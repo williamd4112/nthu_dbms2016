@@ -9,8 +9,6 @@
 #define PAGETYPE_ROW 0x1
 #define PAGESTAT_FULL 0x80000000
 
-#define Full(t) ((t & PAGESTAT_FULL))
-
 typedef int PageType;
 
 template <size_t PAGE_SIZE>
@@ -29,10 +27,6 @@ public:
 	}
 public:
 	PagedDiskFilePage(int pageType = UNDEFINED_TYPE) : mPageType(pageType) {}
-	PagedDiskFilePage(FILE *file)
-	{
-	
-	}
 	
 	~PagedDiskFilePage() {}
 

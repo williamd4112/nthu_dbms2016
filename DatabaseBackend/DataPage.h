@@ -11,15 +11,15 @@
 
 typedef int RowID;
 
-template <class T, size_t PAGE_SIZE>
+template <class T, size_t PAGE_SIZE, 
+	unsigned int MaxEntryCount = (PAGE_SIZE - PAGEHEADER_SIZE) / (sizeof(T) + sizeof(bool))>
 class alignas(PAGE_SIZE) DataPage : public PagedDiskFilePage<PAGE_SIZE>
 {
 public:
-	static const int MaxEntryCount = (PAGE_SIZE - PAGEHEADER_SIZE) / (sizeof(T) + sizeof(bool));
-
-	DataPage() : PagedDiskFilePage<PAGE_SIZE>(PAGETYPE_ROW),
+	DataPage() : PagedDiskFilePage<PAGE_SIZE>(PAGETYPE_ROW), 
 		mEntryCount(0) 
 	{
+		assert(sizeof(DataPage < T, PAGE_SIZE>) == PAGE_SIZE);
 		if (MaxEntryCount <= 0)
 			throw PagedDiskFileException(PagedDiskFileException::OUT_OF_PAGE);
 		memset(mRowUse, 0x0, sizeof(bool) * MaxEntryCount);
@@ -58,6 +58,8 @@ public:
 
 	bool InUse(RowID id) { return mRowUse[id]; }
 
+	bool Full() { return mEntryCount == MaxEntryCount; }
+
 	/**
 	 * @fn	size_t DataPage::WriteRow(T *src, size_t size)
 	 *
@@ -75,7 +77,7 @@ public:
 	RowID WriteRow(T *src)
 	{
 		if (mEntryCount >= MaxEntryCount)
-			return -1;
+			throw PagedDiskFileException(PagedDiskFileException::WRITE_OUT_OF_SPACE);
 
 		RowID id = mEntryCount;
 		while (mRowUse[id]) 

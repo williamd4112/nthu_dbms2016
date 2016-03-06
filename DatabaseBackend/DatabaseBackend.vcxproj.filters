@@ -47,5 +47,11 @@
     <ClInclude Include="DataPage.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="DatabaseDataType.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="BitUtil.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

@@ -85,6 +85,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -127,7 +128,9 @@
     <ClCompile Include="PagedDiskPage.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="BitUtil.h" />
     <ClInclude Include="BPTree.h" />
+    <ClInclude Include="DatabaseDataType.h" />
     <ClInclude Include="PagedDataFile.h" />
     <ClInclude Include="PagedDiskFile.h" />
     <ClInclude Include="PagedDiskFileException.h" />
