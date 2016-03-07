@@ -122,17 +122,32 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Attribute.cpp" />
     <ClCompile Include="BPTree.cpp" />
     <ClCompile Include="main.cpp" />
+<<<<<<< HEAD
     <ClCompile Include="PagedDiskFile.h" />
+=======
+    <ClCompile Include="PagedDiskFile.cpp" />
+    <ClCompile Include="PagedDiskPage.cpp" />
+    <ClCompile Include="Query.cpp" />
+    <ClCompile Include="SQLParser.cpp" />
+>>>>>>> 677df2c4ab7e0c3fae2de4532b1b032cb0e71992
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Attribute.h" />
     <ClInclude Include="BitUtil.h" />
     <ClInclude Include="Database.h" />
     <ClInclude Include="DatabaseDataType.h" />
     <ClInclude Include="DataTable.h" />
     <ClInclude Include="PagedDiskFileException.h" />
     <ClInclude Include="PagedDiskFilePage.h" />
+<<<<<<< HEAD
+=======
+    <ClInclude Include="DataPage.h" />
+    <ClInclude Include="Query.h" />
+    <ClInclude Include="SQLParser.h" />
+>>>>>>> 677df2c4ab7e0c3fae2de4532b1b032cb0e71992
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

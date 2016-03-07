@@ -24,6 +24,15 @@
     <ClCompile Include="PagedDiskFile.h">
       <Filter>標頭檔</Filter>
     </ClCompile>
+    <ClCompile Include="Attribute.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="SQLParser.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
+    <ClCompile Include="Query.cpp">
+      <Filter>原始程式檔</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PagedDiskFileException.h">
@@ -42,6 +51,15 @@
       <Filter>標頭檔</Filter>
     </ClInclude>
     <ClInclude Include="Database.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Query.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="Attribute.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
+    <ClInclude Include="SQLParser.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
   </ItemGroup>
