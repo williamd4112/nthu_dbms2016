@@ -14,11 +14,13 @@ void SQLParser::parse(string& input) {
 	split(input, SemicolonStr, splittoken);
 	while (!splittoken.empty()) {
 		string token = splittoken.front();
+		
 		//create table
 		if (regex_match(token, sm_cre, reg_create)) {
 			Query* q= createTable(sm_cre);
 			if (q != NULL) {
 				queryQueue.push(q);
+				q->printQuery();
 			}	
 		}
 		//insert into
@@ -26,7 +28,11 @@ void SQLParser::parse(string& input) {
 			Query * q = insert(sm_ins);
 			if (q != NULL) {
 				queryQueue.push(q);
+				q->printQuery();
 			}
+		}
+		else {
+			cout << "Syntax error" << endl;
 		}
 		splittoken.pop_front();
 	}
@@ -154,8 +160,10 @@ void SQLParser::split(string &input,const string &reg, deque<string>&token) {
 		string s = input.substr(0, sm.position());
 		token.push_back(s);
 		input = sm.suffix().str();
+
 	}
-	token.push_back(input);
+	if(input!="")
+		token.push_back(input);
 }
 bool SQLParser::caseInsensitiveStrcmp(const string& str1, const string& str2) {
 	string str1Cpy(str1);

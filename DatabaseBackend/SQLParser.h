@@ -8,8 +8,8 @@
 #define VARCHAR 2
 #define CREATE 1
 #define INSERT 2
-#define CommaStr "[,]+(?=([^\']*\'[^\']*\')*[^\']*$)"
-#define SemicolonStr "[;]+(?=([^\']*\'[^\']*\')*[^\']*$)"
+#define CommaStr "(\\s*,\\s*)+(?=([^\']*\'[^\']*\')*[^\']*$)"
+#define SemicolonStr "(\\s*;\\s*)+(?=([^\']*\'[^\']*\')*[^\']*$)"
 
 #define reg_createStr "\\s*create\\s+table\\s+(\\w+)\\s*\\(([\\s\\S]+)\\)\\s*"
 #define reg_attrStr "\\s*(\\w+)\\s+(\\w+)\\s*(\\(\\s*([0-9]+)\\s*\\))?\\s*(primary\\s+key)?\\s*$"
