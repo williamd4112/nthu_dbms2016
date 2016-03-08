@@ -44,7 +44,7 @@ enum FileException
 	LOAD_ERROR
 };
 
-enum AttributeType {
+enum DomainType {
 	INTEGER,
 	VARCHAR
 };
@@ -62,22 +62,22 @@ enum DatabaseException
 	DBFILE_OPEN_ERROR
 };
 
-struct Attribute 
+struct Relation 
 {
 	char name[ATTR_NAME_SIZE_MAX];
-	AttributeType type;
+	DomainType type;
 	size_t offset;
 	size_t size;
 
-	Attribute(){}
-	Attribute(const char *_name, AttributeType _type, size_t _offset, size_t _size)
+	Relation(){}
+	Relation(const char *_name, DomainType _type, size_t _offset, size_t _size)
 		: type(_type), offset(_offset), size(_size)
 	{
 		strncpy(name, _name, ATTR_NAME_SIZE_MAX);
 	}
-	~Attribute() {}
+	~Relation() {}
 
-	friend std::ostream& operator <<(std::ostream& os, const Attribute& attr)
+	friend std::ostream& operator <<(std::ostream& os, const Relation& attr)
 	{
 		return os << "Name = " << attr.name << ", "
 			<< "Type = " << AttributeTypeToString(attr.type) << ", "
@@ -85,7 +85,7 @@ struct Attribute
 			<< "Size = " << attr.size;
 	}
 
-	static const char *AttributeTypeToString(AttributeType type)
+	static const char *AttributeTypeToString(DomainType type)
 	{
 		switch (type)
 		{
@@ -268,7 +268,7 @@ public:
 
 	inline bool Test(int i, byte mask)
 	{
-		return bytes[i] & mask;
+		return (bytes[i] & mask);
 	}
 
 	inline void Or(int i, byte mask)
@@ -335,7 +335,7 @@ struct DataFileFreeMap
 		fread(this, sizeof(DataFileFreeMap<PAGENUM_MAX>), 1, file);
 		std::cout << "ReadFrom Disk: " <<
 			"MaxPageID: " << maxPageID << std::endl;
-		for (int i = 0; i <= maxPageID; i++)
+		for (unsigned int i = 0; i <= maxPageID; i++)
 		{
 			if (byteMap.Test(i, BIT_VALID)) 
 			{
@@ -352,7 +352,7 @@ struct TableHeader
 	int maxAttrNum;
 	size_t rowSize;
 	Bytemap<ATTR_NUM_MAX> attrStatMap;
-	Attribute attributes[ATTR_NUM_MAX];
+	Relation attributes[ATTR_NUM_MAX];
 
 	TableHeader() :
 		maxAttrNum(0), rowSize(0) 
@@ -365,7 +365,7 @@ struct TableHeader
 
 	}
 
-	inline void InitHeader(const char *_name, int _maxAttrNum, Attribute *_attributes)
+	inline void InitHeader(const char *_name, int _maxAttrNum, Relation *_attributes)
 	{
 		strncpy(name, _name, TABLE_NAME_LEN_MAX);
 		maxAttrNum = _maxAttrNum;

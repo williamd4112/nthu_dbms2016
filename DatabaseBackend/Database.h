@@ -30,10 +30,11 @@ public:
 			char tableName[TABLE_NAME_LEN_MAX + 1];
 			while (fscanf(mDatabaseFile, "%s", tableName) != EOF);
 			{
-				std::cout << "Load table " << tableName << std::endl;
+				
 				table = new Table;
 				assert(table != nullptr);
-				mTables.insert(std::pair<std::string, Table*>(std::string(tableName), table));
+				//std::pair<std::unordered_map<std::string, Table*>::iterator, bool> result = mTables.insert(std::pair<std::string, Table*>(std::string(tableName), table));
+				std::cout << "Load table " << tableName << std::endl;
 			}
 		}
 		std::cout << "Database is online" << std::endl;
@@ -51,7 +52,7 @@ public:
 		fclose(mDatabaseFile);
 	}
 
-	inline void CreateTable(const char *tableName, Attribute *attrs, int attrNum)
+	inline void CreateTable(const char *tableName, Relation *attrs, int attrNum)
 	{
 		Table *table = new Table;
 		assert(table != nullptr);

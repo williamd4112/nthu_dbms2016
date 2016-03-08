@@ -22,11 +22,11 @@ struct Record {
 
 //DataTable<FILESZE_4GB, PAGESIZE_8K> *t;
 
-Attribute attrs[] = {
-	Attribute("Student ID", AttributeType::INTEGER, 0, 4),
-	Attribute("Student Name", AttributeType::VARCHAR, 4, 20),
-	Attribute("Address", AttributeType::VARCHAR, 24, 30),
-	Attribute("Phone", AttributeType::VARCHAR, 54, 10)
+Relation attrs[] = {
+	Relation("Student ID", DomainType::INTEGER, 0, 4),
+	Relation("Student Name", DomainType::VARCHAR, 4, 20),
+	Relation("Address", DomainType::VARCHAR, 24, 30),
+	Relation("Phone", DomainType::VARCHAR, 54, 10)
 };
 
 int main(int argc, char *argv[])
@@ -39,7 +39,13 @@ int main(int argc, char *argv[])
 		if (cmd == "CREATE")
 		{
 			std::cin >> arg1;
+
 			db.CreateTable(arg1.c_str(), attrs, 4);
+		}
+		else if (cmd == "INSERT")
+		{
+			std::cin >> arg1;
+			
 		}
 		else if (cmd == "EXIT")
 			break;

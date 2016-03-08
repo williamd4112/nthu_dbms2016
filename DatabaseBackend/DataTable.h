@@ -73,7 +73,7 @@ public:
 		}
 	}
 
-	inline void InitTable(const char *tableName, Attribute *attrs, int attrNum)
+	inline void InitTable(const char *tableName, Relation *attrs, int attrNum)
 	{
 		mTblFile = fopen(getFilePathWithExt(tableName, ".tbl").c_str(), "wb+");
 		if (mTblFile == NULL)
