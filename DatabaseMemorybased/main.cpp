@@ -107,7 +107,7 @@ struct attr_t
 	inline friend bool operator==(const attr_t &a, const attr_t &b)
 	{
 		if (a.domain != b.domain) return false;
-		return (a.domain == INTEGER) ? a.value.integer == b.value.integer : strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX);
+		return (a.domain == INTEGER) ? a.value.integer == b.value.integer : strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX) == 0;
 	}
 };
 
@@ -170,6 +170,17 @@ struct table_record_t
 
 		return os;
 	}
+
+	inline friend bool operator==(const table_record_t &a, const table_record_t &b)
+	{
+		if (a.attr_num != b.attr_num) return false;
+		for (int i = 0; i < a.attr_num; i++)
+		{
+			if (!(a.attrs[i] == b.attrs[i]))
+				return false;
+		}
+		return true;
+	}
 };
 
 class table_t
@@ -196,18 +207,18 @@ public:
 
 	inline void insert_record(table_record_t &record)
 	{
-		if (!validate(record)) 
+		if (!validate(record))  // Check data type
 			throw RECORD_INVALID_TYPE;
-		if (primary_key_index < 0 && isduplicate(record))
+		if (primary_key_index < 0 && isduplicate(record)) // check dupilicate if no PK
 			throw DUPLICATE_RECORD;
-
-		auto result = 
-			table_index.insert(std::pair<attr_t, int>(record[primary_key_index], table_records.size()));
-		
-		if (result.second) 
-			table_records.push_back(record);
-		else 
-			throw DUPLICATE_RECORD;
+		if (primary_key_index >= 0) // check dupilicate if has pk
+		{
+			auto result =
+				table_index.insert(std::pair<attr_t, int>(record[primary_key_index], table_records.size()));
+			if (!result.second)
+				throw DUPLICATE_RECORD;
+		}
+		table_records.push_back(record);
 	}
 
 	inline table_record_t &find_record(attr_t &key)
@@ -218,17 +229,6 @@ public:
 			return table_records[result->second];
 		}
 		throw KEY_NOT_FOUND;
-	}
-
-	inline friend bool operator==(const table_record_t &a, const table_record_t &b)
-	{
-		if (a.attr_num != b.attr_num) return false;
-		for (int i = 0; i < a.attr_num; i++)
-		{
-			if (!(a.attrs[i] == b.attrs[i])) 
-				return false;
-		}
-		return true;
 	}
 
 	inline void show_all()
@@ -265,9 +265,7 @@ private:
 
 	inline bool isduplicate(table_record_t &record)
 	{
-		std::vector<table_record_t>::iterator it = std::find(table_records.begin(),
-			table_records.end(), record);
-		return (it != table_records.end());
+		return !(std::find(table_records.begin(), table_records.end(), record) == table_records.end());
 	}
 };
 
@@ -361,7 +359,8 @@ int main(int argc, char *argv[])
 		{"ADDRESS", VARCHAR, 20}
 	};
 
-	db.create_table("mydb", descs, 3, 0);
+	// Create table
+	db.create_table("mydb", descs, 3, -1);
 
 	table_record_t buff(3);
 	buff.set_attr(0, 0);
@@ -373,6 +372,7 @@ int main(int argc, char *argv[])
 		buff.set_attr(0, 1);
 		try
 		{
+			// Insert data
 			db.insert_record("mydb", buff);
 		}
 		catch (table_exception_t e)
