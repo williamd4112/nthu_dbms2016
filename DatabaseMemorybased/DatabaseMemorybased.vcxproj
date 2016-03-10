@@ -118,15 +118,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\DatabaseBackend\Attribute.cpp" />
-    <ClCompile Include="..\DatabaseBackend\Query.cpp" />
-    <ClCompile Include="..\DatabaseBackend\SQLParser.cpp" />
+    <ClCompile Include="Attribute.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Query.cpp" />
+    <ClCompile Include="SQLParser.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\DatabaseBackend\Attribute.h" />
-    <ClInclude Include="..\DatabaseBackend\Query.h" />
-    <ClInclude Include="..\DatabaseBackend\SQLParser.h" />
+    <ClInclude Include="Attribute.h" />
+    <ClInclude Include="Query.h" />
+    <ClInclude Include="SQLParser.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

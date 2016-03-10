@@ -6,22 +6,24 @@
 #include <map>
 #include <regex>
 #include <assert.h>
+#include "SQLParser.h"
 
 #define ATTR_NUM_MAX 5
 #define ATTR_SIZE_MAX 40
+#define NO_PRIMARY_KEY -1
 
 const char *DB_PROMPT_PREFIX = "Database > ";
 
 const char *attr_domain_t_str[] = 
 {
-	"INTEGER",
+	"INTEGER_DOMAIN",
 	"VARCHAR"
 };
 
 enum attr_domain_t
 {
-	INTEGER = 0,
-	VARCHAR = 1
+	INTEGER_DOMAIN = 0,
+	VARCHAR_DOMAIN = 1
 };
 
 enum table_exception_t
@@ -62,13 +64,13 @@ struct attr_t
 	attr_domain_t domain;
 	attr_value_t value;
 
-	attr_t(int _val) : value(_val), domain(INTEGER){}
+	attr_t(int _val) : value(_val), domain(INTEGER_DOMAIN){}
 
-	attr_t(const char *_str) : value(_str), domain(VARCHAR){}
+	attr_t(const char *_str) : value(_str), domain(VARCHAR_DOMAIN){}
 
 	attr_t(const attr_t& _attr) : domain(_attr.domain) 
 	{
-		if (_attr.domain == INTEGER) value = _attr.value.integer;
+		if (_attr.domain == INTEGER_DOMAIN) value = _attr.value.integer;
 		else value = _attr.value.varchar;
 	}
 
@@ -78,36 +80,36 @@ struct attr_t
 
 	inline size_t size()
 	{
-		return (domain == INTEGER) ? sizeof(int) : strlen(value.varchar);
+		return (domain == INTEGER_DOMAIN) ? sizeof(int) : strlen(value.varchar);
 	}
 
 	attr_t &operator=(const attr_t& _attr) 
 	{
 		domain = _attr.domain;
-		if (domain == INTEGER) value = _attr.value.integer;
+		if (domain == INTEGER_DOMAIN) value = _attr.value.integer;
 		else value = _attr.value.varchar;
 		return *this;
 	}
 
-	attr_t &operator=(int _val) { domain = INTEGER; value = _val; return (*this); }
-	attr_t &operator=(const char *_val) { domain = VARCHAR; value = _val; return (*this);}
+	attr_t &operator=(int _val) { domain = INTEGER_DOMAIN; value = _val; return (*this); }
+	attr_t &operator=(const char *_val) { domain = VARCHAR_DOMAIN; value = _val; return (*this);}
 
 	friend std::ostream& operator <<(std::ostream& os, attr_t &attr)
 	{
-		return (attr.domain == INTEGER) ? os << attr.value.integer : os << attr.value.varchar;
+		return (attr.domain == INTEGER_DOMAIN) ? os << attr.value.integer : os << attr.value.varchar;
 	}
 
 	friend bool operator <(const attr_t &a, const attr_t &b)
 	{
 		assert(a.domain == b.domain);
-		if (a.domain == INTEGER) return a.value.integer < b.value.integer;
+		if (a.domain == INTEGER_DOMAIN) return a.value.integer < b.value.integer;
 		else return a.value.varchar < b.value.varchar;
 	}
 
 	inline friend bool operator==(const attr_t &a, const attr_t &b)
 	{
 		if (a.domain != b.domain) return false;
-		return (a.domain == INTEGER) ? a.value.integer == b.value.integer : strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX) == 0;
+		return (a.domain == INTEGER_DOMAIN) ? a.value.integer == b.value.integer : strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX) == 0;
 	}
 };
 
@@ -351,34 +353,41 @@ inline static void exception_hanlder(table_exception_t e)
 
 static database_t db;
 
-int main(int argc, char *argv[])
-{	
+static void test_create()
+{
 	table_record_desc_t descs[] = {
-		{"ID", INTEGER, 4},
-		{"NAME", VARCHAR, 40},
-		{"ADDRESS", VARCHAR, 20}
+		{ "ID", INTEGER_DOMAIN, 4 },
+		{ "NAME", VARCHAR_DOMAIN, 40 },
+		{ "ADDRESS", VARCHAR_DOMAIN, 20 }
 	};
+	db.create_table("mydb", descs, 3, NO_PRIMARY_KEY);
+}
 
-	// Create table
-	db.create_table("mydb", descs, 3, -1);
-
+static void test_insert()
+{
 	table_record_t buff(3);
 	buff.set_attr(0, 0);
 	buff.set_attr(1, "Williamd");
-	buff.set_attr(2, "Road St.");
-
-	for (int i = 0; i < 10; i++)
+	buff.set_attr(2, "Hsinchu");
+	
+	for (int i = 0; i < 1000; i++)
 	{
-		buff.set_attr(0, 1);
-		try
-		{
-			// Insert data
-			db.insert_record("mydb", buff);
-		}
-		catch (table_exception_t e)
-		{
-			exception_hanlder(e);
-		}
+		db.insert_record("mydb", buff);
+		buff.set_attr(0, i);
+	}
+}
+
+int main(int argc, char *argv[])
+{	
+	SQLParser *parser = new SQLParser();
+	std::string input;
+	std::getline(std::cin, input);
+	parser->parse(input);
+	while (!parser->queryQueue.empty())
+	{
+		Query *q = parser->queryQueue.front();
+		q->printQuery();
+		parser->queryQueue.pop();
 	}
 	system("pause");
 
