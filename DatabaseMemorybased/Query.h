@@ -17,5 +17,4 @@ public:
 private:
 	int action;//1 CREATE TABLE; 2 INSERT
 	string tableName;
-
 };

@@ -22,8 +22,8 @@ const char *attr_domain_t_str[] =
 
 enum attr_domain_t
 {
-	INTEGER_DOMAIN = 0,
-	VARCHAR_DOMAIN = 1
+	INTEGER_DOMAIN = 0, //////////0
+	VARCHAR_DOMAIN = 1/////////1
 };
 
 enum table_exception_t
@@ -353,17 +353,28 @@ inline static void exception_hanlder(table_exception_t e)
 
 static database_t db;
 
-static void test_create()
+static void test_create(Query *q)
 {
-	table_record_desc_t descs[] = {
+	/*table_record_desc_t descs[] = {
 		{ "ID", INTEGER_DOMAIN, 4 },
 		{ "NAME", VARCHAR_DOMAIN, 40 },
 		{ "ADDRESS", VARCHAR_DOMAIN, 20 }
-	};
-	db.create_table("mydb", descs, 3, NO_PRIMARY_KEY);
+	};*/
+	table_record_desc_t* descs;
+	int primary_key = 0;
+	descs = new table_record_desc_t[q->attributes.size()];
+	while ((q->attributes.at(primary_key)->getPrimaryKey())!=1) {
+		primary_key++;
+	}
+	for (int i = 0; i < q->attributes.size(); i++) {
+		strcpy_s(descs[i].attr_name, q->attributes.at(i)->getAttrName().c_str());
+		descs[i].attr_domain= (attr_domain_t)((q->attributes.at(i)->getAttrType()));
+		descs[i].attr_size = q->attributes.at(i)->getAttrLength();
+	}
+	db.create_table(q->getTableName().c_str(), descs, q->attributes.size(), primary_key);
 }
 
-static void test_insert()
+static void test_insert(Query *q)
 {
 	table_record_t buff(3);
 	buff.set_attr(0, 0);
@@ -381,14 +392,29 @@ int main(int argc, char *argv[])
 {	
 	SQLParser *parser = new SQLParser();
 	std::string input;
-	std::getline(std::cin, input);
+	char ch;
+	while (cin.get(ch)) {
+		if (ch == ';') {
+			//input += ch;
+			break;
+		}
+		input += ch;
+	}
 	parser->parse(input);
 	while (!parser->queryQueue.empty())
 	{
 		Query *q = parser->queryQueue.front();
 		q->printQuery();
+		if (q->getAction() ==1) {
+			test_create(q);
+		}
+		else if (q->getAction() == 2) {
+			test_insert(q);
+		}
 		parser->queryQueue.pop();
 	}
+	//test_create();
+
 	system("pause");
 
 	return 0;
