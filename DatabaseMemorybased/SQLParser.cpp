@@ -123,6 +123,7 @@ Query* SQLParser::createTable(smatch &sm_cre) {
 			//set data type
 			if (caseInsensitiveStrcmp(sm_attr[2].str(), "int")) {
 				temp->setAttrType(INT);
+				temp->setAttrLength(4);
 			}
 			else if (caseInsensitiveStrcmp(sm_attr[2].str(), "varchar")) {
 				temp->setAttrType(VARCHAR);

@@ -4,8 +4,8 @@
 #include <queue> 
 #include <regex> 
 #include "Query.h"
-#define INT 1
-#define VARCHAR 2
+#define INT 0
+#define VARCHAR 1
 #define CREATE 1
 #define INSERT 2
 #define CommaStr "(\\s*,\\s*)+(?=([^\']*\'[^\']*\')*[^\']*$)"
