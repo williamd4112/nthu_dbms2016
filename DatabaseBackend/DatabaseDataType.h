@@ -41,11 +41,12 @@ enum PageException
 enum FileException
 {
 	CREATE_ERROR,
-	LOAD_ERROR
+	LOAD_ERROR,
+	WRITE_OUT_OF_PAGE
 };
 
 enum DomainType {
-	INTEGER,
+	INTEGER_DOMAIN,
 	VARCHAR
 };
 
@@ -53,6 +54,9 @@ enum TableException
 {
 	TABLE_CREATE_ERROR,
 	TABLE_LOAD_ERROR,
+	UNDEFINED_KEY_TYPE,
+	DUPLICATE_RECORD,
+	INDEX_OVERFLOW,
 	ATTRIBUTE_SIZE_TOOLARGE,
 	OUT_OF_MEMORY_FOR_NEWTABLE
 };
@@ -89,8 +93,8 @@ struct Relation
 	{
 		switch (type)
 		{
-		case INTEGER:
-			return "INTEGER";
+		case INTEGER_DOMAIN:
+			return "INTEGER_DOMAIN";
 		case VARCHAR:
 			return "VARCHAR";
 		default:
@@ -118,6 +122,7 @@ public:
 	PageCacheSlot(size_t rowSize) : 
 		dirtys{ 0 }, presents{ 0 }, ids{ 0 }
 	{
+		assert(rowSize > 0);
 		for (int i = 0; i < CACHE_NUM; i++)
 			pages[i] = new page_t(rowSize);
 	}
@@ -388,7 +393,7 @@ struct TableHeader
 	inline void ReadFrom(FILE *file, size_t offset)
 	{
 		fseek(file, offset, SEEK_SET);
-		fwrite(this, sizeof(TableHeader), 1, file);
+		fread(this, sizeof(TableHeader), 1, file);
 	}
 
 	inline void WriteBackAt(FILE *file, size_t offset)
@@ -397,3 +402,5 @@ struct TableHeader
 		fwrite(this, sizeof(TableHeader), 1, file);
 	}
 };
+
+

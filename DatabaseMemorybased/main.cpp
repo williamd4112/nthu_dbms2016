@@ -410,7 +410,7 @@ static void test_insert(Query *q)
 	buff.set_attr(1, "Williamd");
 	buff.set_attr(2, "Hsinchu");
 	
-	for (int i = 0; i < 1000; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		db.insert_record("mydb", buff);
 		buff.set_attr(0, i);
@@ -424,6 +424,8 @@ static void test_insert(Query *q)
 
 int main(int argc, char *argv[])
 {	
+	//test_create();
+	//test_insert();
 	SQLParser *parser = new SQLParser();
 	std::string input;
 	char ch;

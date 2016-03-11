@@ -57,25 +57,23 @@ public:
 					if (mDataFileFreeMap->byteMap.Test(i, BIT_VALID))
 					{
 						page = mPageCache[cacheID]->Read(i);
-						//std::cout << "Cache hit " << i << std::endl;
 					}
 					else 
 					{
 						page = mPageCache[cacheID]->AllocateNewPage(mDatFile, i, 0);
 						mDataFileFreeMap->byteMap.Or(i, BIT_VALID);
-						//std::cout << "Allocate new page " << i << std::endl;
 					}
 					page->WriteRowHeap(src);
+					return;
 				}
 				catch (CacheException e)
 				{
-					//std::cout << "Cache miss " << i << std::endl;
 					page = mPageCache[cacheID]->Load(mDatFile, i, 0, WRITE);
 					page->WriteRowHeap(src);
+					return;
 				}
 				catch (PageException e)
 				{
-					//std::cout << "Previous page full " << std::endl;
 					page = NULL;
 				}
 				
@@ -83,12 +81,10 @@ public:
 				{
 					mDataFileFreeMap->byteMap.Or(i, BIT_FULL);
 					mDataFileFreeMap->maxPageID++;
-					//std::cout << "Page " << i << " full" << std::endl;
 				}
-
-				return;
 			}
 		}
+		throw WRITE_OUT_OF_PAGE;
 	}
 	
 	inline Page *ReadPage(PageID id)
