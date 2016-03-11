@@ -93,7 +93,7 @@ public:
 	inline void LoadTable(const char *tableName)
 	{
 		mTblFile = fopen(getFilePathWithExt(tableName, ".tbl").c_str(), "rb+");
-		if (mTblFil == nullptr)
+		if (mTblFile == nullptr)
 			throw TABLE_LOAD_ERROR;
 		mHeader.ReadFrom(mTblFile, 0);
 		mDataFile = new DataFile<FILESIZE_MAX, PAGE_SIZE>(
@@ -121,7 +121,7 @@ private:
 				if (i != 0) std::cout << ", ";
 				switch (mHeader.attributes[i].type)
 				{
-				case INTEGER:
+				case INTEGER_DOMAIN:
 					std::cout << *(int*)(src + mHeader.attributes[i].offset);
 					break;
 				case VARCHAR:

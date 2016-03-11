@@ -30,11 +30,20 @@ public:
 			char tableName[TABLE_NAME_LEN_MAX + 1];
 			while (fscanf(mDatabaseFile, "%s", tableName) != EOF);
 			{
-				
 				table = new Table;
 				assert(table != nullptr);
-				//std::pair<std::unordered_map<std::string, Table*>::iterator, bool> result = mTables.insert(std::pair<std::string, Table*>(std::string(tableName), table));
-				std::cout << "Load table " << tableName << std::endl;
+				std::pair<std::unordered_map<std::string, Table*>::iterator, bool> result = 
+					mTables.insert(std::pair<std::string, Table*>(std::string(tableName), table));
+				if (result.second)
+				{
+					table->LoadTable(tableName);
+					std::cout << "Load table " << tableName << std::endl;
+				}
+				else 
+				{
+					std::cout << "Duplicate Table" << tableName << std::endl;
+					delete table;
+				}
 			}
 		}
 		std::cout << "Database is online" << std::endl;
@@ -57,22 +66,63 @@ public:
 		Table *table = new Table;
 		assert(table != nullptr);
 		
-		table->InitTable(tableName, attrs, attrNum);
-		mTables.insert(std::pair<std::string, Table*>(tableName, table));
-
-		std::cout << "Table " << tableName << " created." << std::endl;
-		table->DumpInfo();
+		std::pair<std::unordered_map<std::string, Table*>::iterator, bool> result = 
+			mTables.insert(std::pair<std::string, Table*>(tableName, table));
+		if (result.second)
+		{
+			std::cout << "Table " << tableName << " created." << std::endl;
+			table->InitTable(tableName, attrs, attrNum);
+			table->DumpInfo();
+		}
+		else
+		{
+			std::cout << "Table " << tableName << " exist." << std::endl;
+			delete table;
+		}
 		std::cout << std::endl;
 	}
 
-	inline void InsertRecord(const char *tableName, const byte *src, size_t size)
+	inline void InsertRecord(const char *tableName, byte *src)
 	{
+		std::unordered_map<std::string, Table*>::iterator it =
+			mTables.find(tableName);
+		if (it != mTables.end())
+		{
+			Table *table = it->second;
+			assert(table != nullptr);
 
+			try 
+			{
+				table->AddRecord(src);
+				std::cout << "Insertion success: " << std::endl;
+				table->ShowAll();
+			}
+			catch (FileException e)
+			{
+				std::cerr << "Insertion failed: out of pages" << std::endl;
+			}
+		}
+		else 
+		{
+			std::cerr << "Table doesn't exist." << std::endl;
+		}
 	}
 
 	inline void ShowTableInfo(const char *tableName)
 	{
-		
+		std::unordered_map<std::string, Table*>::iterator it =
+			mTables.find(tableName);
+		if (it != mTables.end())
+		{
+			Table *table = it->second;
+			assert(table != nullptr);
+
+			table->ShowAll();
+		}
+		else 
+		{
+			std::cerr << "Table doesn't exist." << std::endl;
+		}
 	}
 private:
 	FILE *mDatabaseFile;

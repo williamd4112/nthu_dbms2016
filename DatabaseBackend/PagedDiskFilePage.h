@@ -143,3 +143,19 @@ private:
 	Bitmap<ROWNUM_MAX> mFreeMap;
 	byte mDatas[FREESPACE_SIZE];
 };
+
+template <size_t PAGE_SIZE>
+class alignas(PAGE_SIZE) BTreeInnerNodePage
+	: public PagedDiskFilePage<PAGE_SIZE>
+{
+public:
+private:
+};
+
+template <size_t PAGE_SIZE>
+class alignas(PAGE_SIZE)BTreeLeafNodePage
+	: public PagedDiskFilePage<PAGE_SIZE>
+{
+public:
+private:
+};
