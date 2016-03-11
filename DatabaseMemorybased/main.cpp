@@ -11,6 +11,7 @@
 #define ATTR_NUM_MAX 5
 #define ATTR_SIZE_MAX 40
 #define NO_PRIMARY_KEY -1
+#define MAX_NO_ATTRIBUTE 1000
 
 const char *DB_PROMPT_PREFIX = "Database > ";
 
@@ -350,6 +351,34 @@ inline static void exception_hanlder(table_exception_t e)
 		break;
 	}
 }
+class table_attribute {
+public:
+	void setTableName(string tablename) {
+		tableName = tablename;
+	}
+	string getTableName() {
+		return tableName;
+	}
+	void setAttribute(string inputAttribute,int index) {
+		attribute[index] = inputAttribute;
+	}
+	string getAttribute(int index) {
+		return attribute[index];
+	}
+	int calculateIndex(string inputAttribute) {
+		int location=0;
+		/*while () {
+			location++;
+		}*/
+		return location;
+	}
+private:
+	string tableName;
+	string attribute[MAX_NO_ATTRIBUTE];
+	int attribute_index[MAX_NO_ATTRIBUTE];
+};
+
+
 
 static database_t db;
 
@@ -376,7 +405,7 @@ static void test_create(Query *q)
 
 static void test_insert(Query *q)
 {
-	table_record_t buff(3);
+	/*table_record_t buff(3);
 	buff.set_attr(0, 0);
 	buff.set_attr(1, "Williamd");
 	buff.set_attr(2, "Hsinchu");
@@ -385,6 +414,11 @@ static void test_insert(Query *q)
 	{
 		db.insert_record("mydb", buff);
 		buff.set_attr(0, i);
+	}*/
+	table_record_t * buff;
+	buff = new table_record_t[q->attributes.size()];
+	for (int i = 0; i < q->attributes.size();i++) {
+
 	}
 }
 
