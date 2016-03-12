@@ -34,7 +34,7 @@ void SQLParser::parse(string& input) {
 			}
 		}
 		else {
-			cout << "Syntax error" << endl;
+			cerr << "Syntax error" << endl;
 		}
 		splittoken.pop_front();
 	}
@@ -78,7 +78,7 @@ Query * SQLParser::insert(smatch &sm_ins)
 			string Sattr = sm_bra[2].str();
 			split(Sattr, ",", attrStr_deque);
 			if (attrStr_deque.size() != valueStr_deque.size()) {
-				cout << "insert Number doesn't match" << endl;
+				cerr << "insert Number doesn't match" << endl;
 				valueStr_deque.clear();
 				attrStr_deque.clear();
 				temp_attr.clear();
@@ -97,7 +97,7 @@ Query * SQLParser::insert(smatch &sm_ins)
 		q->attributes = temp_attr;
 	}
 	else {
-		cout << "Syntax error" << endl;
+		cerr << "Syntax error" << endl;
 		delete(q);
 		return NULL;
 	}
@@ -133,7 +133,7 @@ Query* SQLParser::createTable(smatch &sm_cre) {
 				temp->setAttrLength(stoi(sm_attr[4].str(), &sz));
 			}
 			else {
-				cout << "unknown data type" << endl;
+				cerr << "unknown data type" << endl;
 				delete(temp);
 				attribute.clear();
 				delete(q);
@@ -145,7 +145,7 @@ Query* SQLParser::createTable(smatch &sm_cre) {
 			q->attributes.push_back(temp);
 		}
 		else {
-			cout << "Syntax error" << endl;
+			cerr << "Syntax error" << endl;
 			delete(temp);
 			attribute.clear();
 			delete(q);

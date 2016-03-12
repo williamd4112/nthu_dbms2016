@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #define ATTR_NUM_MAX 5
 #define ATTR_SIZE_MAX 40
 #define NO_PRIMARY_KEY -1
@@ -24,19 +26,24 @@ const char *action_str[] =
 enum attr_domain_t
 {
 	INTEGER_DOMAIN = 0,
-	VARCHAR_DOMAIN = 1
+	VARCHAR_DOMAIN = 1,
+	UNDEFINED_DOMAIN = 2
 };
 
 enum table_exception_t
 {
 	RECORD_INVALID_TYPE,
 	DUPLICATE_RECORD,
+	DUPLICATE_KEY,
+	DUPLICATE_ATTR_NAME,
 	KEY_NOT_FOUND,
 	TABLE_RECORD_DESC_INVALD_SIZE,
 	TABLE_BAD_INITIAL_ARGS,
 	TABLE_NO_SUCH_TABLE,
 	ATTRTYPE_TO_DOMAIN_INVALID_TYPE,
-	UNDEFINED_TYPE
+	UNDEFINED_TYPE,
+	DESC_TOO_MANY_ATTR,
+	ATTR_SIZE_TOO_LARGE
 };
 
 struct attr_t
@@ -44,9 +51,11 @@ struct attr_t
 	union attr_value_t
 	{
 		int integer;
-		char varchar[ATTR_SIZE_MAX];
+		char *varchar;
 		attr_value_t(int _val) : integer(_val) {}
-		attr_value_t(const char *_str) { strncpy_s(varchar, _str, ATTR_SIZE_MAX); }
+		attr_value_t(const char *_str) { varchar = _strdup(_str); }
+		attr_value_t() {}
+		~attr_value_t() {}
 
 		attr_value_t& operator=(int _val)
 		{
@@ -56,17 +65,12 @@ struct attr_t
 
 		attr_value_t& operator=(const char *_val)
 		{
-			strncpy_s(varchar, _val, ATTR_SIZE_MAX);
+			varchar = _strdup(_val);
 			return *this;
 		}
-
-		attr_value_t() {}
-		~attr_value_t() {}
 	};
 
-	attr_domain_t domain;
-	attr_value_t value;
-
+public:
 	attr_t(int _val) : value(_val), domain(INTEGER_DOMAIN) {}
 
 	attr_t(const char *_str) : value(_str), domain(VARCHAR_DOMAIN) {}
@@ -74,29 +78,40 @@ struct attr_t
 	attr_t(const attr_t& _attr) : domain(_attr.domain)
 	{
 		if (_attr.domain == INTEGER_DOMAIN) value = _attr.value.integer;
-		else value = _attr.value.varchar;
+		else if (_attr.domain == VARCHAR_DOMAIN) value = _attr.value.varchar;
 	}
 
-	attr_t() {}
+	attr_t() : domain(UNDEFINED_DOMAIN) {}
 
 	~attr_t() {}
 
 	inline size_t size()
 	{
-		return (domain == INTEGER_DOMAIN) ? sizeof(int) : strlen(value.varchar);
+		return (domain == INTEGER_DOMAIN) ? sizeof(int) :
+			(domain == VARCHAR_DOMAIN) ? strlen(value.varchar) :
+			0;
 	}
+
+	inline attr_domain_t Domain() const { return domain; }
+	inline int Int() const { return value.integer; }
+	inline const char *Varchar() const { return value.varchar; }
 
 	attr_t &operator=(const attr_t& _attr)
 	{
 		domain = _attr.domain;
 		if (domain == INTEGER_DOMAIN) value = _attr.value.integer;
-		else value = _attr.value.varchar;
+		else if (_attr.domain == VARCHAR_DOMAIN) value = _attr.value.varchar;
 		return *this;
 	}
 
 	attr_t &operator=(int _val) { domain = INTEGER_DOMAIN; value = _val; return (*this); }
-	attr_t &operator=(const char *_val) { domain = VARCHAR_DOMAIN; value = _val; return (*this); }
-	attr_t &operator=(std::string _val) { domain = VARCHAR_DOMAIN; value = _val.c_str(); return (*this); }
+	attr_t &operator=(const char *_val) 
+	{ 
+		if (domain == VARCHAR_DOMAIN) 
+			delete value.varchar; 
+		domain = VARCHAR_DOMAIN; 
+		value = _val; return (*this); 
+	}
 
 	friend std::ostream& operator <<(std::ostream& os, attr_t &attr)
 	{
@@ -105,16 +120,22 @@ struct attr_t
 
 	friend bool operator <(const attr_t &a, const attr_t &b)
 	{
-		assert(a.domain == b.domain);
-		if (a.domain == INTEGER_DOMAIN) return a.value.integer < b.value.integer;
-		else return a.value.varchar < b.value.varchar;
+		assert(a.Domain() == b.Domain());
+		if (a.Domain() == INTEGER_DOMAIN) return a.Int() < b.Int();
+		else if(a.Domain() == VARCHAR_DOMAIN) return strncmp(a.Varchar(), b.Varchar(), ATTR_NUM_MAX) < 0;
+		else throw UNDEFINED_TYPE;
 	}
 
 	inline friend bool operator==(const attr_t &a, const attr_t &b)
 	{
-		if (a.domain != b.domain) return false;
-		return (a.domain == INTEGER_DOMAIN) ? a.value.integer == b.value.integer : strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX) == 0;
+		if (a.Domain() != b.Domain()) return false;
+		return (a.Domain() == INTEGER_DOMAIN) ? a.Int() == b.Int() :
+			(a.Domain() == VARCHAR_DOMAIN) ? strcmp(a.Varchar(), b.Varchar()) == 0 : 
+			throw UNDEFINED_TYPE;
 	}
+private:
+	attr_domain_t domain;
+	attr_value_t value;
 };
 
 struct table_record_desc_t
@@ -200,6 +221,7 @@ public:
 	~table_t() {}
 
 	const inline std::string &name() { return table_name; }
+	const inline int pk_index() const { return primary_key_index; }
 
 	inline void insert_record(table_record_t &record)
 	{
@@ -212,7 +234,7 @@ public:
 			auto result =
 				table_index.insert(std::pair<attr_t, int>(record[primary_key_index], table_records.size()));
 			if (!result.second)
-				throw DUPLICATE_RECORD;
+				throw DUPLICATE_KEY;
 		}
 		table_records.push_back(record);
 	}
@@ -227,17 +249,18 @@ public:
 		throw KEY_NOT_FOUND;
 	}
 
-	inline void show_all()
+	friend std::ostream& operator<<(std::ostream& os, table_t &table)
 	{
-		std::cout << "Table: " << table_name << std::endl;
-		for (std::vector<table_record_t>::iterator it = table_records.begin();
-		it != table_records.end();
+		os << "Table: " << table.table_name << " Count: " << table.table_records.size() << std::endl;
+		for (std::vector<table_record_t>::iterator it = table.table_records.begin();
+			it != table.table_records.end();
 			it++)
 		{
-			std::cout << *it << std::endl;
+			os  << *it << std::endl;
 		}
+		os << std::endl;
+		return os;
 	}
-
 private:
 	std::string table_name;
 	int table_attr_num;
@@ -253,7 +276,7 @@ private:
 
 		for (int i = 0; i < table_attr_num; i++)
 		{
-			if (table_record_descs[i].attr_domain != record.attrs[i].domain ||
+			if (table_record_descs[i].attr_domain != record.attrs[i].Domain() ||
 				table_record_descs[i].attr_size < record.attrs[i].size())
 				return false;
 		}
@@ -284,6 +307,21 @@ public:
 	inline void create_table(const char *_table_name,
 		table_record_desc_t *record_descs, int _record_desc_num, int _primary_key_index)
 	{
+		if (_record_desc_num > ATTR_NUM_MAX)
+		{
+			std::cerr << DB_PROMPT_PREFIX << " error, too many attributes." << std::endl;
+			return;
+		}
+
+		for (int i = 0; i < _record_desc_num; i++)
+		{
+			if (record_descs[i].attr_size > ATTR_SIZE_MAX)
+			{
+				std::cerr << DB_PROMPT_PREFIX << " error, too large column." << std::endl;
+				return;
+			}
+		}
+
 		table_t *new_table = new table_t(_table_name, record_descs, _record_desc_num, _primary_key_index);
 
 		auto result = tables.insert(std::pair<std::string, table_t*>(_table_name, new_table));
@@ -294,7 +332,10 @@ public:
 			for (int i = 0; i < _record_desc_num; i++)
 			{
 				std::cout << DB_PROMPT_CONTINUE_PREFIX 
-					<< record_descs[i] << std::endl;
+					<< record_descs[i];
+				if (i == _primary_key_index)
+					std::cout << " (Primary Key)";
+				std::cout << std::endl;
 			}
 		}
 		else
@@ -315,11 +356,25 @@ public:
 			try
 			{
 				table_ptr->insert_record(_record);
-				std::cout << DB_PROMPT_PREFIX << _record << " has been inserted." << std::endl;
+				std::cout << DB_PROMPT_PREFIX << _record << " has been inserted to " << _tablename << std::endl;
 			}
 			catch (table_exception_t e)
 			{
-				std::cerr << DB_PROMPT_PREFIX << _record << " has already existed." << std::endl;
+				switch (e)
+				{
+				case DUPLICATE_KEY:
+					std::cerr << DB_PROMPT_PREFIX << _record[table_ptr->pk_index()] << " key has already existed." << std::endl;
+					break;
+				case DUPLICATE_RECORD:
+					std::cerr << DB_PROMPT_PREFIX << _record << " has already existed." << std::endl;
+					break;
+				case RECORD_INVALID_TYPE:
+					std::cerr << DB_PROMPT_PREFIX << _record << " is invalid record." << std::endl;
+					break;
+				default:
+					std::cerr << DB_PROMPT_PREFIX << "unhandled exception " << e << std::endl;
+					break;
+				}
 			}
 		}
 		else
@@ -333,7 +388,7 @@ public:
 		auto result = tables.find(tablename);
 		if (result != tables.end())
 		{
-			result->second->show_all();
+			std::cout << *(result->second) << std::endl;
 		}
 		else
 		{
