@@ -11,7 +11,7 @@
 #define CommaStr "(\\s*,\\s*)+(?=([^\']*\'[^\']*\')*[^\']*$)"
 #define SemicolonStr "(\\s*;\\s*)+(?=([^\']*\'[^\']*\')*[^\']*$)"
 
-#define reg_createStr "\\s*create\\s+table\\s+(\\w+)\\s*\\(([\\s\\S]+)\\)\\s*"
+#define reg_createStr "\\s*create\\s+table\\s+(\\w+)\\s*\\(([\\w\\(\\)\\s]+(,[\\w\\)\\(\\s]+)*)\\)\\s*"
 #define reg_attrStr "\\s*(\\w+)\\s+(\\w+)\\s*(\\(\\s*([0-9]+)\\s*\\))?\\s*(primary\\s+key)?\\s*$"
 
 #define reg_insertStr "\\s*insert\\s+into\\s+(\\w+)\\s*([\\s\\S]+)\\s*"
