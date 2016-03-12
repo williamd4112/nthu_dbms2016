@@ -9,7 +9,7 @@ public:
 	void setAttrName(string&);
 	string& getAttrName();
 	
-	void setAttrValue(string);
+	void setAttrValue(string&);
 	void setAttrValue(int);
 
 	void* getAttrValue();

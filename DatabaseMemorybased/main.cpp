@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include <cstdio>
 #include <ctime>
 #include <vector>
@@ -6,452 +7,157 @@
 #include <map>
 #include <regex>
 #include <assert.h>
+
+#include "data_type.h"
 #include "SQLParser.h"
 
-#define ATTR_NUM_MAX 5
-#define ATTR_SIZE_MAX 40
-#define NO_PRIMARY_KEY -1
-#define MAX_NO_ATTRIBUTE 1000
+static database_t db;
 
-const char *DB_PROMPT_PREFIX = "Database > ";
+inline static void parse(std::string &input_str);
+inline static void handle_create(Query *q);
+inline static void handle_insert(Query *q);
+inline static attr_domain_t attr_type_to_domain(int t);
+inline static void exception_hanlder(table_exception_t e);
 
-const char *attr_domain_t_str[] = 
-{
-	"INTEGER_DOMAIN",
-	"VARCHAR"
-};
-
-enum attr_domain_t
-{
-	INTEGER_DOMAIN = 0, //////////0
-	VARCHAR_DOMAIN = 1/////////1
-};
-
-enum table_exception_t
-{
-	RECORD_INVALID_TYPE,
-	DUPLICATE_RECORD,
-	KEY_NOT_FOUND,
-	TABLE_RECORD_DESC_INVALD_SIZE,
-	TABLE_BAD_INITIAL_ARGS,
-	TABLE_NO_SUCH_TABLE
-};
-
-struct attr_t
-{
-	union attr_value_t
-	{
-		int integer;
-		char varchar[ATTR_SIZE_MAX];
-		attr_value_t(int _val) : integer(_val){}
-		attr_value_t(const char *_str) { strncpy_s(varchar, _str, ATTR_SIZE_MAX); }
-		
-		attr_value_t& operator=(int _val)
-		{
-			integer = _val;
-			return *this;
-		}
-
-		attr_value_t& operator=(const char *_val)
-		{
-			strncpy_s(varchar, _val, ATTR_SIZE_MAX);
-			return *this;
-		}
-
-		attr_value_t(){}
-		~attr_value_t(){}
-	};
-
-	attr_domain_t domain;
-	attr_value_t value;
-
-	attr_t(int _val) : value(_val), domain(INTEGER_DOMAIN){}
-
-	attr_t(const char *_str) : value(_str), domain(VARCHAR_DOMAIN){}
-
-	attr_t(const attr_t& _attr) : domain(_attr.domain) 
-	{
-		if (_attr.domain == INTEGER_DOMAIN) value = _attr.value.integer;
-		else value = _attr.value.varchar;
-	}
-
-	attr_t() {}
-
-	~attr_t(){}
-
-	inline size_t size()
-	{
-		return (domain == INTEGER_DOMAIN) ? sizeof(int) : strlen(value.varchar);
-	}
-
-	attr_t &operator=(const attr_t& _attr) 
-	{
-		domain = _attr.domain;
-		if (domain == INTEGER_DOMAIN) value = _attr.value.integer;
-		else value = _attr.value.varchar;
-		return *this;
-	}
-
-	attr_t &operator=(int _val) { domain = INTEGER_DOMAIN; value = _val; return (*this); }
-	attr_t &operator=(const char *_val) { domain = VARCHAR_DOMAIN; value = _val; return (*this);}
-
-	friend std::ostream& operator <<(std::ostream& os, attr_t &attr)
-	{
-		return (attr.domain == INTEGER_DOMAIN) ? os << attr.value.integer : os << attr.value.varchar;
-	}
-
-	friend bool operator <(const attr_t &a, const attr_t &b)
-	{
-		assert(a.domain == b.domain);
-		if (a.domain == INTEGER_DOMAIN) return a.value.integer < b.value.integer;
-		else return a.value.varchar < b.value.varchar;
-	}
-
-	inline friend bool operator==(const attr_t &a, const attr_t &b)
-	{
-		if (a.domain != b.domain) return false;
-		return (a.domain == INTEGER_DOMAIN) ? a.value.integer == b.value.integer : strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX) == 0;
-	}
-};
-
-struct table_record_desc_t
-{
-	char attr_name[ATTR_SIZE_MAX];
-	attr_domain_t attr_domain;
-	size_t attr_size;
-
-	friend std::ostream& operator<<(std::ostream& os, table_record_desc_t& desc)
-	{
-		return os << "[" << desc.attr_name << ", " << attr_domain_t_str[desc.attr_domain] << ", " << desc.attr_size << "]";
-	}
-};
-
-struct table_record_t
-{
-	unsigned int attr_num;
-	attr_t attrs[ATTR_NUM_MAX];
-
-	table_record_t(int _attr_num) : 
-		attr_num(_attr_num){}
-
-	table_record_t() : attr_num(0) {}
+int main(int argc, char *argv[])
+{	
+	std::stringstream input_buff;
+	std::string input_str;
+	bool statement_end = false;
 	
-	table_record_t(const table_record_t& r) :
-		attr_num(r.attr_num)
+	std::cout << DB_PROMPT_PREFIX;
+	while (getline(std::cin, input_str))
 	{
-		for (int i = 0; i < r.attr_num; i++)
-			attrs[i] = r.attrs[i];
-	}
-
-	~table_record_t() {}
-
-	inline void set_attr(int index, int int_val)
-	{
-		attrs[index] = int_val;
-	}
-
-	inline void set_attr(int index, const char *varchar_val)
-	{
-		attrs[index] = varchar_val;
-	}
-
-	inline attr_t &operator[](int i)
-	{
-		assert(i >= 0 && i < attr_num);
-		return attrs[i];
-	}
-
-	friend std::ostream& operator <<(std::ostream& os, table_record_t& r)
-	{
-		os << "{";
-		for (int i = 0; i < r.attr_num; i++)
+		size_t scan_offset = 0;
+		while (scan_offset < input_str.length())
 		{
-			if (i) os << ", ";
-			os << r.attrs[i];
+			size_t semicol_pos = input_str.find(";", scan_offset);
+
+			std::string str_part = input_str.substr(scan_offset, semicol_pos - scan_offset);
+			input_buff << str_part;
+			
+			if (semicol_pos == std::string::npos) 
+				break; // no ';'
+			else 
+			{
+				scan_offset = semicol_pos + 1;
+				parse(input_buff.str());
+				input_buff.str("");
+				input_buff.clear();
+				statement_end = true;
+			}
 		}
-		os << "}";
-
-		return os;
+		std::cout << ((statement_end) ? DB_PROMPT_PREFIX : DB_PROMPT_CONTINUE_PREFIX);
+		statement_end = false;
 	}
+	return 0;
+}
 
-	inline friend bool operator==(const table_record_t &a, const table_record_t &b)
-	{
-		if (a.attr_num != b.attr_num) return false;
-		for (int i = 0; i < a.attr_num; i++)
-		{
-			if (!(a.attrs[i] == b.attrs[i]))
-				return false;
-		}
-		return true;
-	}
-};
-
-class table_t
+static void parse(std::string &input_str)
 {
-public:
-	std::string table_name;
-
-	table_t(const char *_table_name, table_record_desc_t *record_descs, int record_desc_num, int _primary_key_index) :
-		table_name(_table_name),
-		table_record_descs(record_descs),
-		table_attr_num(record_desc_num),
-		primary_key_index(_primary_key_index)
+	SQLParser *parser = new SQLParser();
+	parser->parse(input_str);
+	while (!parser->queryQueue.empty())
 	{
-		if (_primary_key_index >= record_desc_num) // < 0 means -> no primary key
-			throw TABLE_BAD_INITIAL_ARGS;
-		for (int i = 0; i < record_desc_num; i++)
+		Query *q = parser->queryQueue.front();
+		switch (q->getAction())
 		{
-			if (record_descs[i].attr_size > ATTR_SIZE_MAX || record_descs[i].attr_size <= 0)
-				throw TABLE_RECORD_DESC_INVALD_SIZE;
+		case CREATE:
+			handle_create(q);
+			break;
+		case INSERT:
+			handle_insert(q);
+			break;
+		default:
+			std::cerr << DB_PROMPT_PREFIX << "Undefined operation" << std::endl;
+			break;
 		}
+		parser->queryQueue.pop();
 	}
+	delete parser;
+}
 
-	~table_t(){}
-
-	inline void insert_record(table_record_t &record)
-	{
-		if (!validate(record))  // Check data type
-			throw RECORD_INVALID_TYPE;
-		if (primary_key_index < 0 && isduplicate(record)) // check dupilicate if no PK
-			throw DUPLICATE_RECORD;
-		if (primary_key_index >= 0) // check dupilicate if has pk
-		{
-			auto result =
-				table_index.insert(std::pair<attr_t, int>(record[primary_key_index], table_records.size()));
-			if (!result.second)
-				throw DUPLICATE_RECORD;
-		}
-		table_records.push_back(record);
-	}
-
-	inline table_record_t &find_record(attr_t &key)
-	{
-		auto result = table_index.find(key);
-		if (result != table_index.end())
-		{
-			return table_records[result->second];
-		}
-		throw KEY_NOT_FOUND;
-	}
-
-	inline void show_all()
-	{
-		std::cout << "Table: " << table_name << std::endl;
-		for (std::vector<table_record_t>::iterator it = table_records.begin();
-			it != table_records.end();
-			it++)
-		{
-			std::cout << *it << std::endl;
-		}
-	}
-
-private:
-	int table_attr_num;
-	int primary_key_index;
-	table_record_desc_t *table_record_descs;
-	std::vector<table_record_t> table_records;
-	std::map<attr_t, int> table_index;
-
-	inline bool validate(table_record_t &record)
-	{
-		if (record.attr_num != table_attr_num) 
-			return false;
-
-		for (int i = 0; i < table_attr_num; i++)
-		{
-			if (table_record_descs[i].attr_domain != record.attrs[i].domain ||
-				table_record_descs[i].attr_size < record.attrs[i].size())
-				return false;
-		}
-		return true;
-	}
-
-	inline bool isduplicate(table_record_t &record)
-	{
-		return !(std::find(table_records.begin(), table_records.end(), record) == table_records.end());
-	}
-};
-
-class database_t
+inline static void handle_create(Query *q)
 {
-	typedef std::unordered_map<std::string, table_t*> hashtable;
-public:
-	database_t()
-	{}
-	
-	~database_t()
-	{
-		for (hashtable::iterator it = tables.begin(); it != tables.end(); it++)
-		{
-			delete it->second;
-		}
-	}
+	table_record_desc_t *table_descs = new table_record_desc_t[q->attributes.size()];
+	int primary_key_index = NO_PRIMARY_KEY;
 
-	inline void create_table(const char *_table_name,
-		table_record_desc_t *record_descs, int _record_desc_num, int _primary_key_index)
-	{
-		table_t *new_table = new table_t(_table_name, record_descs, _record_desc_num, _primary_key_index);
-		
-		auto result = tables.insert(std::pair<std::string, table_t*>(_table_name, new_table));
-		if (result.second)
-		{
-			std::cout << "Database > Table \"" << _table_name << "\" has been created." << std::endl;
-			for (int i = 0; i < _record_desc_num; i++)
-			{
-				std::cout << "         > " << record_descs[i] << std::endl;
-			}
+	try {
+		for (int i = 0; i < q->attributes.size(); i++) {
+			Attribute *attr = q->attributes[i];
+			table_descs[i].attr_name = attr->getAttrName();
+			table_descs[i].attr_domain = attr_type_to_domain(attr->getAttrType());
+			table_descs[i].attr_size = attr->getAttrLength();
+			if (attr->getPrimaryKey())
+				primary_key_index = i;
 		}
-		else
-		{
-			std::cerr << DB_PROMPT_PREFIX << "error, " << _table_name << " has been existed." << std::endl;
-		}
+		db.create_table(q->getTableName().c_str(), 
+			table_descs, q->attributes.size(), primary_key_index);
 	}
-
-	inline void insert_record(const char *_tablename, table_record_t &_record)
+	catch (table_exception_t e)
 	{
-		auto result = tables.find(_tablename);
-		if (result != tables.end())
-		{
-			table_t *table_ptr = result->second;
-			assert(table_ptr != nullptr);
-
-			try
-			{
-				table_ptr->insert_record(_record);
-				std::cout << DB_PROMPT_PREFIX << _record << " has been inserted." << std::endl;
-			}
-			catch (table_exception_t e)
-			{
-				std::cerr << DB_PROMPT_PREFIX << _record << " has already existed." << std::endl;
-			}
-		}
-		else
-		{
-			std::cerr << DB_PROMPT_PREFIX << "table " << _tablename << " doesn't exist." << std::endl;
-		}
+		exception_hanlder(e);
+		delete table_descs;
 	}
-private:
-	hashtable tables;
-};
+}
+
+inline static void handle_insert(Query *q)
+{
+	table_record_t record(q->attributes.size());
+	try {
+		for (int i = 0; i < q->attributes.size(); i++) {
+			Attribute *attr = q->attributes[i];
+			int type = attr->getAttrType();
+			if (type == INT)
+				record[i] = *static_cast<int*>(attr->getAttrValue());
+			else if (type == VARCHAR)
+				record[i] = *static_cast<string*>(attr->getAttrValue());
+			else
+				throw UNDEFINED_TYPE;
+		}
+		db.insert_record(q->getTableName().c_str(), record);
+		db.show(q->getTableName().c_str());
+	}
+	catch (table_exception_t e)
+	{
+		exception_hanlder(e);
+	}
+}
+
+inline static attr_domain_t attr_type_to_domain(int t)
+{
+	switch (t)
+	{
+	case INT:
+		return INTEGER_DOMAIN;
+	case VARCHAR:
+		return VARCHAR_DOMAIN;
+	default:
+		throw ATTRTYPE_TO_DOMAIN_INVALID_TYPE;
+	}
+}
 
 inline static void exception_hanlder(table_exception_t e)
 {
 	switch (e)
 	{
 	case DUPLICATE_RECORD:
-		std::cerr << "Error: duplicate key." << std::endl;
+		std::cerr << DB_PROMPT_PREFIX << "Error: duplicate key." << std::endl;
 		break;
 	case KEY_NOT_FOUND:
-		std::cerr << "Error: key not found." << std::endl;
+		std::cerr << DB_PROMPT_PREFIX << "Error: key not found." << std::endl;
 		break;
 	case RECORD_INVALID_TYPE:
-		std::cerr << "Error: invalid data type." << std::endl;
+		std::cerr << DB_PROMPT_PREFIX << "Error: invalid data type." << std::endl;
+		break;
+	case ATTRTYPE_TO_DOMAIN_INVALID_TYPE:
+		std::cerr << DB_PROMPT_PREFIX << "Error: undefined type conversion." << std::endl;
+		break;
+	case UNDEFINED_TYPE:
+		std::cerr << DB_PROMPT_PREFIX << "Error: undefined attribute type" << std::endl;
 		break;
 	default:
+		std::cerr << DB_PROMPT_PREFIX << "Error: unhandled exception." << std::endl;
 		break;
 	}
-}
-class table_attribute {
-public:
-	void setTableName(string tablename) {
-		tableName = tablename;
-	}
-	string getTableName() {
-		return tableName;
-	}
-	void setAttribute(string inputAttribute,int index) {
-		attribute[index] = inputAttribute;
-	}
-	string getAttribute(int index) {
-		return attribute[index];
-	}
-	int calculateIndex(string inputAttribute) {
-		int location=0;
-		/*while () {
-			location++;
-		}*/
-		return location;
-	}
-private:
-	string tableName;
-	string attribute[MAX_NO_ATTRIBUTE];
-	int attribute_index[MAX_NO_ATTRIBUTE];
-};
-
-
-
-static database_t db;
-
-static void test_create(Query *q)
-{
-	/*table_record_desc_t descs[] = {
-		{ "ID", INTEGER_DOMAIN, 4 },
-		{ "NAME", VARCHAR_DOMAIN, 40 },
-		{ "ADDRESS", VARCHAR_DOMAIN, 20 }
-	};*/
-	table_record_desc_t* descs;
-	int primary_key = 0;
-	descs = new table_record_desc_t[q->attributes.size()];
-	while ((q->attributes.at(primary_key)->getPrimaryKey())!=1) {
-		primary_key++;
-	}
-	for (int i = 0; i < q->attributes.size(); i++) {
-		strcpy_s(descs[i].attr_name, q->attributes.at(i)->getAttrName().c_str());
-		descs[i].attr_domain= (attr_domain_t)((q->attributes.at(i)->getAttrType()));
-		descs[i].attr_size = q->attributes.at(i)->getAttrLength();
-	}
-	db.create_table(q->getTableName().c_str(), descs, q->attributes.size(), primary_key);
-}
-
-static void test_insert(Query *q)
-{
-	/*table_record_t buff(3);
-	buff.set_attr(0, 0);
-	buff.set_attr(1, "Williamd");
-	buff.set_attr(2, "Hsinchu");
-	
-	for (int i = 0; i < 10; i++)
-	{
-		db.insert_record("mydb", buff);
-		buff.set_attr(0, i);
-	}*/
-	table_record_t * buff;
-	buff = new table_record_t[q->attributes.size()];
-	for (int i = 0; i < q->attributes.size();i++) {
-
-	}
-}
-
-int main(int argc, char *argv[])
-{	
-	//test_create();
-	//test_insert();
-	SQLParser *parser = new SQLParser();
-	std::string input;
-	char ch;
-	while (cin.get(ch)) {
-		if (ch == ';') {
-			//input += ch;
-			break;
-		}
-		input += ch;
-	}
-	parser->parse(input);
-	while (!parser->queryQueue.empty())
-	{
-		Query *q = parser->queryQueue.front();
-		q->printQuery();
-		if (q->getAction() ==1) {
-			test_create(q);
-		}
-		else if (q->getAction() == 2) {
-			test_insert(q);
-		}
-		parser->queryQueue.pop();
-	}
-	//test_create();
-
-	system("pause");
-
-	return 0;
 }

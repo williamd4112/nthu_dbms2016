@@ -125,6 +125,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Attribute.h" />
+    <ClInclude Include="data_type.h" />
     <ClInclude Include="Query.h" />
     <ClInclude Include="SQLParser.h" />
   </ItemGroup>

@@ -38,5 +38,8 @@
     <ClInclude Include="SQLParser.h">
       <Filter>標頭檔</Filter>
     </ClInclude>
+    <ClInclude Include="data_type.h">
+      <Filter>標頭檔</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

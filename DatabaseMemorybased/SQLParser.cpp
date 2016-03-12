@@ -4,12 +4,14 @@
 #include <deque>
 
 using namespace std;
+
 void SQLParser::parse(string& input) {
 	
 	regex reg_create(reg_createStr, regex_constants::icase);
 	regex reg_insert(reg_insertStr, regex_constants::icase);
 	smatch sm_cre,sm_ins;
 	deque<string> splittoken;
+
 	//split
 	split(input, SemicolonStr, splittoken);
 	while (!splittoken.empty()) {
@@ -20,7 +22,7 @@ void SQLParser::parse(string& input) {
 			Query* q= createTable(sm_cre);
 			if (q != NULL) {
 				queryQueue.push(q);
-				q->printQuery();
+				//q->printQuery();
 			}	
 		}
 		//insert into
@@ -28,7 +30,7 @@ void SQLParser::parse(string& input) {
 			Query * q = insert(sm_ins);
 			if (q != NULL) {
 				queryQueue.push(q);
-				q->printQuery();
+				//q->printQuery();
 			}
 		}
 		else {

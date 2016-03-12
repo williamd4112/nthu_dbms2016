@@ -1,10 +1,9 @@
 #include "Attribute.h"
 using namespace std;
 
-Attribute::Attribute() {
-	attributeType=0 ;//1 int ;2 varchar
-	attributeLength=0 ;
-	primaryKey = false;
+Attribute::Attribute() : 
+	attributeType(0), attributeLength(0), primaryKey(false){
+
 }
 void Attribute::setAttrName(string &name)
 {
@@ -16,7 +15,7 @@ string & Attribute::getAttrName()
 	return attributeName;
 }
 
-void Attribute::setAttrValue(string value)
+void Attribute::setAttrValue(string &value)
 {
 	attrSValue = value;
 	attrValue = &attrSValue;
