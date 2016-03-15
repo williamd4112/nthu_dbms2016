@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 		if (!file_in)  std::cout << ((statement_end) ? DB_PROMPT_PREFIX : DB_PROMPT_CONTINUE_PREFIX);
 		statement_end = false;
 	}
-	system("pause");
+
 	return 0;
 }
 
@@ -120,7 +120,7 @@ inline static void handle_create(Query *q)
 
 inline static int find_attr_insert_index(table_t *table_ptr, const std::string &attr_name)
 {
-	for (int i = 0; i < table_ptr->count(); i++)
+	for (int i = 0; i < table_ptr->attr_count(); i++)
 	{
 		const table_record_desc_t *desc = table_ptr->desc(i);
 		assert(desc != NULL);
@@ -138,7 +138,8 @@ inline static void handle_insert(Query *q)
 		if (table_ptr == NULL)
 			throw TABLE_NO_SUCH_TABLE;
 
-		table_record_t record(q->attributes.size());
+		int attr_num = table_ptr->attr_count();
+		table_record_t record(attr_num);
 
 		for (int i = 0; i < q->attributes.size(); i++) {
 			int attrIndex = i;

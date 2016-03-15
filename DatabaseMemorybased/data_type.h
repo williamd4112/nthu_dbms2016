@@ -116,7 +116,17 @@ public:
 
 	friend std::ostream& operator <<(std::ostream& os, attr_t &attr)
 	{
-		return (attr.domain == INTEGER_DOMAIN) ? os << attr.value.integer : os << attr.value.varchar;
+		switch (attr.domain)
+		{
+		case INTEGER_DOMAIN:
+			return os << attr.value.integer;
+		case VARCHAR_DOMAIN:
+			return os << attr.value.varchar;
+		default:
+			return os << "null";
+		}
+		return (attr.domain == INTEGER_DOMAIN) ? 
+			os << attr.value.integer : os << attr.value.varchar;
 	}
 
 	friend bool operator <(const attr_t &a, const attr_t &b)
@@ -223,7 +233,7 @@ public:
 
 	const inline std::string &name() { return table_name; }
 	const inline int pk_index() const { return primary_key_index; }
-	const inline int count() { return table_attr_num; }
+	const inline int attr_count() { return table_attr_num; }
 	const inline table_record_desc_t *desc(int i)
 	{
 		if (i < 0 || i >= table_attr_num) return NULL;
@@ -283,8 +293,10 @@ private:
 
 		for (int i = 0; i < table_attr_num; i++)
 		{
-			if (table_record_descs[i].attr_domain != record.attrs[i].Domain() ||
-				table_record_descs[i].attr_size < record.attrs[i].size())
+			bool domainSame = (table_record_descs[i].attr_domain == record.attrs[i].Domain()
+				|| (record.attrs[i].Domain() == UNDEFINED_DOMAIN && i != primary_key_index));
+			bool sizeAccept = record.attrs[i].size() <= table_record_descs[i].attr_size;
+			if(!domainSame || !sizeAccept)
 				return false;
 		}
 		return true;
