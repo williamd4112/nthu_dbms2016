@@ -33,6 +33,10 @@ enum attr_domain_t
 enum table_exception_t
 {
 	RECORD_INVALID_TYPE,
+	RECORD_ATTR_NUM_INCONSISTENT,
+	RECORD_DOMAIN_INCONSISTENT,
+	RECORD_PRIMARY_KEY_NULL,
+	RECORD_SIZE_INCONSISTENT,
 	DUPLICATE_RECORD,
 	DUPLICATE_KEY,
 	DUPLICATE_ATTR_NAME,
@@ -42,7 +46,7 @@ enum table_exception_t
 	TABLE_NO_SUCH_TABLE,
 	TABLE_NO_SUCH_ATTR,
 	ATTRTYPE_TO_DOMAIN_INVALID_TYPE,
-	UNDEFINED_TYPE,
+	INSERTION_NO_TYPE,
 	DESC_TOO_MANY_ATTR,
 	ATTR_SIZE_TOO_LARGE
 };
@@ -125,8 +129,6 @@ public:
 		default:
 			return os << "null";
 		}
-		return (attr.domain == INTEGER_DOMAIN) ? 
-			os << attr.value.integer : os << attr.value.varchar;
 	}
 
 	friend bool operator <(const attr_t &a, const attr_t &b)
@@ -134,15 +136,21 @@ public:
 		assert(a.Domain() == b.Domain());
 		if (a.Domain() == INTEGER_DOMAIN) return a.Int() < b.Int();
 		else if(a.Domain() == VARCHAR_DOMAIN) return strncmp(a.Varchar(), b.Varchar(), ATTR_NUM_MAX) < 0;
-		else throw UNDEFINED_TYPE;
+		else return false;
 	}
 
 	inline friend bool operator==(const attr_t &a, const attr_t &b)
 	{
 		if (a.Domain() != b.Domain()) return false;
-		return (a.Domain() == INTEGER_DOMAIN) ? a.Int() == b.Int() :
-			(a.Domain() == VARCHAR_DOMAIN) ? strcmp(a.Varchar(), b.Varchar()) == 0 : 
-			throw UNDEFINED_TYPE;
+		switch (a.domain)
+		{
+		case INTEGER_DOMAIN:
+			return a.value.integer == a.value.integer;
+		case VARCHAR_DOMAIN:
+			return strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX);
+		default: // NULL TYPE
+			return true;
+		}
 	}
 private:
 	attr_domain_t domain;
@@ -242,8 +250,8 @@ public:
 
 	inline void insert_record(table_record_t &record)
 	{
-		if (!validate(record))  // Check data type
-			throw RECORD_INVALID_TYPE;
+		validate(record);
+
 		if (primary_key_index < 0 && isduplicate(record)) // check dupilicate if no PK
 			throw DUPLICATE_RECORD;
 		if (primary_key_index >= 0) // check dupilicate if has pk
@@ -286,20 +294,21 @@ private:
 	std::vector<table_record_t> table_records;
 	std::map<attr_t, int> table_index;
 
-	inline bool validate(table_record_t &record)
+	inline void validate(table_record_t &record)
 	{
 		if (record.attr_num != table_attr_num)
-			return false;
+			throw RECORD_ATTR_NUM_INCONSISTENT;
 
 		for (int i = 0; i < table_attr_num; i++)
 		{
-			bool domainSame = (table_record_descs[i].attr_domain == record.attrs[i].Domain()
-				|| (record.attrs[i].Domain() == UNDEFINED_DOMAIN && i != primary_key_index));
+			bool domainSame = (table_record_descs[i].attr_domain == record.attrs[i].Domain() ||
+				(record.attrs[i].Domain() == UNDEFINED_DOMAIN && i != primary_key_index));
 			bool sizeAccept = record.attrs[i].size() <= table_record_descs[i].attr_size;
-			if(!domainSame || !sizeAccept)
-				return false;
+			if(i == primary_key_index && record.attrs[i].Domain() == UNDEFINED_DOMAIN)
+				throw RECORD_PRIMARY_KEY_NULL;
+			if (!domainSame) throw RECORD_DOMAIN_INCONSISTENT;
+			if (!sizeAccept) throw RECORD_SIZE_INCONSISTENT;
 		}
-		return true;
 	}
 
 	inline bool isduplicate(table_record_t &record)
@@ -396,8 +405,17 @@ public:
 				case DUPLICATE_RECORD:
 					std::cerr << DB_PROMPT_PREFIX << _record << " has already existed." << std::endl;
 					break;
-				case RECORD_INVALID_TYPE:
-					std::cerr << DB_PROMPT_PREFIX << _record << " is invalid record." << std::endl;
+				case RECORD_ATTR_NUM_INCONSISTENT:
+					std::cerr << DB_PROMPT_PREFIX << _record << " attribute number is wrong." << std::endl;
+					break;
+				case RECORD_DOMAIN_INCONSISTENT:
+					std::cerr << DB_PROMPT_PREFIX << _record << " domain is wrong." << std::endl;
+					break;
+				case RECORD_PRIMARY_KEY_NULL:
+					std::cerr << DB_PROMPT_PREFIX << _record << " primary key cannot be null." << std::endl;
+					break;
+				case RECORD_SIZE_INCONSISTENT:
+					std::cerr << DB_PROMPT_PREFIX << _record << " size is too large." << std::endl;
 					break;
 				default:
 					std::cerr << DB_PROMPT_PREFIX << "unhandled exception " << e << std::endl;

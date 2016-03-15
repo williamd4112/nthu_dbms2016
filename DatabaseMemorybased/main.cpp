@@ -157,7 +157,7 @@ inline static void handle_insert(Query *q)
 			else if (type == VARCHAR)
 				record[attrIndex] = (*static_cast<string*>(attr->getAttrValue())).c_str();
 			else
-				throw UNDEFINED_TYPE;
+				throw INSERTION_NO_TYPE;
 		}
 		db.insert_record(q->getTableName().c_str(), record);
 		db.show(q->getTableName().c_str());
@@ -206,7 +206,7 @@ inline static void exception_hanlder(table_exception_t e)
 	case ATTRTYPE_TO_DOMAIN_INVALID_TYPE:
 		std::cerr << DB_PROMPT_PREFIX << "Error: undefined type conversion." << std::endl;
 		break;
-	case UNDEFINED_TYPE:
+	case INSERTION_NO_TYPE:
 		std::cerr << DB_PROMPT_PREFIX << "Error: undefined attribute type" << std::endl;
 		break;
 	default:
