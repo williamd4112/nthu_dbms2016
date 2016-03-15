@@ -147,7 +147,7 @@ public:
 		case INTEGER_DOMAIN:
 			return a.value.integer == a.value.integer;
 		case VARCHAR_DOMAIN:
-			return strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX);
+			return strncmp(a.value.varchar, b.value.varchar, ATTR_SIZE_MAX) == 0;
 		default: // NULL TYPE
 			return true;
 		}
