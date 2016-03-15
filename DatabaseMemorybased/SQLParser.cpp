@@ -76,6 +76,7 @@ Query * SQLParser::insert(smatch &sm_ins)
 		//set attribute
 		if (sm_bra[2].str() != "") {
 			string Sattr = sm_bra[2].str();
+			Sattr=trim(Sattr);
 			split(Sattr, "\\s*,\\s*", attrStr_deque);
 			if (attrStr_deque.size() != valueStr_deque.size()) {
 				cerr << "insert Number doesn't match" << endl;
@@ -112,7 +113,7 @@ Query* SQLParser::createTable(smatch &sm_cre) {
 	q->setAction(CREATE);
 	//split attribute
 	deque<string> attribute;
-	split(sm_cre[2].str(), ",", attribute);
+	split(sm_cre[2].str(), "\\s*,\\s*", attribute);
 	//attribute syntax check
 	regex reg_attr(reg_attrStr, regex_constants::icase);
 	smatch sm_attr;
@@ -169,10 +170,20 @@ void SQLParser::split(string &input,const string &reg, deque<string>&token) {
 		token.push_back(input);
 }
 bool SQLParser::caseInsensitiveStrcmp(const string& str1, const string& str2) {
-	string str1Cpy(str1);
+	string   str1Cpy(str1);
 	string str2Cpy(str2);
 	transform(str1Cpy.begin(), str1Cpy.end(), str1Cpy.begin(), tolower);
 	transform(str2Cpy.begin(), str2Cpy.end(), str2Cpy.begin(), tolower);
 	return (str1Cpy == str2Cpy);
 }
+string& SQLParser::trim(string &s)
+{
+	if (s.empty())
+	{
+		return  s;
+	}
 
+	s.erase(0, s.find_first_not_of(" "));
+	s.erase(s.find_last_not_of(" ") + 1);
+	return  s;
+}

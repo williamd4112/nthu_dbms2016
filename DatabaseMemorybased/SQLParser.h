@@ -28,6 +28,7 @@ public:
 	Query* insert(smatch&);
 	Query* createTable(smatch&);
 	bool caseInsensitiveStrcmp(const string&, const string&);
+	string & trim(string & s);
 	void split(string&,const string&, deque<string>&);
 
 };
