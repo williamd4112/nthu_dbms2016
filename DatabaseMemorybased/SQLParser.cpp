@@ -76,7 +76,7 @@ Query * SQLParser::insert(smatch &sm_ins)
 		//set attribute
 		if (sm_bra[2].str() != "") {
 			string Sattr = sm_bra[2].str();
-			split(Sattr, ",", attrStr_deque);
+			split(Sattr, "\\s*,\\s*", attrStr_deque);
 			if (attrStr_deque.size() != valueStr_deque.size()) {
 				cerr << "insert Number doesn't match" << endl;
 				valueStr_deque.clear();
