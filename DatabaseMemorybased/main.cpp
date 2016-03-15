@@ -46,7 +46,7 @@ int main(int argc, char *argv[])
 			size_t semicol_pos = input_str.find(";", scan_offset);
 
 			std::string str_part = input_str.substr(scan_offset, semicol_pos - scan_offset);
-			input_buff << str_part;
+			input_buff << str_part << std::endl;
 			
 			if (semicol_pos == std::string::npos) 
 				break; // no ';'
