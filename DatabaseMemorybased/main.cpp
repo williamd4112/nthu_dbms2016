@@ -62,6 +62,7 @@ int main(int argc, char *argv[])
 		if (!file_in)  std::cout << ((statement_end) ? DB_PROMPT_PREFIX : DB_PROMPT_CONTINUE_PREFIX);
 		statement_end = false;
 	}
+	system("pause");
 	return 0;
 }
 
@@ -117,17 +118,43 @@ inline static void handle_create(Query *q)
 	}
 }
 
+inline static int find_attr_insert_index(table_t *table_ptr, const std::string &attr_name)
+{
+	for (int i = 0; i < table_ptr->count(); i++)
+	{
+		const table_record_desc_t *desc = table_ptr->desc(i);
+		assert(desc != NULL);
+		if (desc->attr_name == attr_name)
+			return i;
+	}
+	return -1;
+}
+
 inline static void handle_insert(Query *q)
 {
-	table_record_t record(q->attributes.size());
 	try {
+
+		table_t *table_ptr = db.find_table(q->getTableName().c_str());
+		if (table_ptr == NULL)
+			throw TABLE_NO_SUCH_TABLE;
+
+		table_record_t record(q->attributes.size());
+
 		for (int i = 0; i < q->attributes.size(); i++) {
+			int attrIndex = i;
 			Attribute *attr = q->attributes[i];
+			if (attr->getAttrName() != "")
+			{
+				attrIndex = find_attr_insert_index(table_ptr, attr->getAttrName());
+				if (attrIndex < 0)
+					throw TABLE_NO_SUCH_ATTR;
+			}
+
 			int type = attr->getAttrType();
 			if (type == INT)
-				record[i] = *static_cast<int*>(attr->getAttrValue());
+				record[attrIndex] = *static_cast<int*>(attr->getAttrValue());
 			else if (type == VARCHAR)
-				record[i] = (*static_cast<string*>(attr->getAttrValue())).c_str();
+				record[attrIndex] = (*static_cast<string*>(attr->getAttrValue())).c_str();
 			else
 				throw UNDEFINED_TYPE;
 		}
@@ -162,6 +189,12 @@ inline static void exception_hanlder(table_exception_t e)
 		break;
 	case DUPLICATE_ATTR_NAME:
 		std::cerr << DB_PROMPT_PREFIX << "Error: duplicate attribute name." << std::endl;
+		break;
+	case TABLE_NO_SUCH_TABLE:
+		std::cerr << DB_PROMPT_PREFIX << "Error: no such table." << std::endl;
+		break;
+	case TABLE_NO_SUCH_ATTR:
+		std::cerr << DB_PROMPT_PREFIX << "Error: no such attribute." << std::endl;
 		break;
 	case KEY_NOT_FOUND:
 		std::cerr << DB_PROMPT_PREFIX << "Error: key not found." << std::endl;

@@ -40,6 +40,7 @@ enum table_exception_t
 	TABLE_RECORD_DESC_INVALD_SIZE,
 	TABLE_BAD_INITIAL_ARGS,
 	TABLE_NO_SUCH_TABLE,
+	TABLE_NO_SUCH_ATTR,
 	ATTRTYPE_TO_DOMAIN_INVALID_TYPE,
 	UNDEFINED_TYPE,
 	DESC_TOO_MANY_ATTR,
@@ -222,6 +223,12 @@ public:
 
 	const inline std::string &name() { return table_name; }
 	const inline int pk_index() const { return primary_key_index; }
+	const inline int count() { return table_attr_num; }
+	const inline table_record_desc_t *desc(int i)
+	{
+		if (i < 0 || i >= table_attr_num) return NULL;
+		else return &table_record_descs[i];
+	}
 
 	inline void insert_record(table_record_t &record)
 	{
@@ -302,6 +309,15 @@ public:
 		{
 			delete it->second;
 		}
+	}
+
+	inline table_t *find_table(const char *tablename)
+	{
+		hashtable::iterator it = tables.find(tablename);
+		if (it != tables.end())
+			return it->second;
+		else
+			return NULL;
 	}
 
 	inline void create_table(const char *_table_name,
